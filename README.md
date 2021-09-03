@@ -14,7 +14,7 @@ library(devtools)
 devtools::install_github("AmiAhm/itses")
 ```
 
-Alternatively, download package material/clone the repository and run the following R-script. Ensure to have the main folder "itses/" in the working directory:
+Alternatively, download package material or clone the repository, and run the following R-script. Ensure to have the main folder "itses/" in the working directory:
 
 ```{r}
 library(devtools)
