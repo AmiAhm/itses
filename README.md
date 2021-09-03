@@ -3,7 +3,7 @@
 The  main purpose of this package is to perform sparse estimation of many normal means.  Estimation is done using either the hard- or the soft-threhold estimator. 
 An iterative approach is used to select a threshold.
 
-## Setup 
+## Set up 
 
 Set up is easily done through the `devtools` package. 
 
