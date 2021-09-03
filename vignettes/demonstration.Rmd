@@ -1,0 +1,115 @@
+---
+title: "Demonstration of `itses`"
+author: "Amir Ahmed"
+date: "`r Sys.Date()`"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Vignette Title}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+This `vignette` provides a quick introducion to the problem treated by the `itses` package and a demonstration of how to use the package in practice.
+
+## Introduction
+
+Let $\mathbf{Y} = (Y_1, Y_2, \dots, Y_n)$. Assume $Y_i \sim N(\theta_i, \sigma^2)$,  $\theta_i$ unknown and $\sigma^2>0$ known and given or unknown, for all $1\leq i\leq n$. That is $Y_i$ of normal distribuion with mean $\theta_i$ and variance $\sigma^2$. Estimation is to be done minimizing expected square error under repeated sampling. 
+
+`itses` estimate the means $\theta_i$ using iterative sparse estimation. Risk estimation is either done using sampling or numerically.
+
+Noise estimation is done using Sparse Median Absolute Deviation or by Median Absolute Deviation.
+## A basic example
+
+First fetch the package and simulate some data:
+
+```{r, fig.show='hold'}
+library(itses)
+set.seed(1)
+# Simulate some data to be used
+theta <- c(rep(0, 3), 2*rnorm(7))
+theta <- sample(theta)
+y <- rnorm(length(theta), mean = theta, sd = 3)
+```
+
+The true means are:
+````{r}
+theta
+
+```` 
+
+The observed data is: 
+````{r}
+y
+
+```` 
+
+Iterative sparse estimation with the soft-threshold estimator for the means and Sparse MAD noise estimation can be done using:
+````{r}
+theta.est.st.sd.unknown <- itses::itses(y)$theta
+theta.est.st.sd.unknown
+```` 
+
+If noise is known it can be provided by:
+````{r}
+theta.est.st.sd.known <- itses::itses(y, sd = 3)$theta
+theta.est.st.sd.known
+```` 
+
+To use hard-threshold one can instead run:
+````{r}
+theta.est.ht.sd.known <- itses::itses(y, sd = 3, method = "HT")$theta
+theta.est.ht.sd.known 
+```` 
+
+
+## Plotting estimated risk 
+Estimated risk of final iteration `itses` can be plotted in the following manner: 
+ 
+````{r}
+itses.data <- itses::itses(y, sd = 3, method = "ST")
+iteration.data <- itses.data$iteration_result
+last.iteration.data <- iteration.data[[length(iteration.data)]]
+```` 
+
+ 
+````{r}
+plot(last.iteration.data[,1], last.iteration.data[,2], type = "l",
+     xlab = "threshold", ylab = "Risk (squared error)")
+```` 
+
+To display estimated risk by all iterations one can similarly do:
+```{r}
+for(i in length(iteration.data):1) {
+  if(i == length(iteration.data)) {
+    plot(iteration.data[[i]][,1], iteration.data[[i]][,2], type = "l",
+     xlab = "threshold", ylab = "Risk (squared error)")
+  }else{
+    lines(iteration.data[[i]][,1], iteration.data[[i]][,2], col = "gray")
+  }
+}
+```
+Similarly estiamted risk at each iteration threshold can be plotted with:
+```{r}
+
+y <- c(rnorm(30), rnorm(30)+10) # Just generating some data
+itses.data <- itses::itses(y, sd = 3, method = "ST")
+iteration.data <- itses.data$iteration_result
+risks <- c()
+for(i in 1:length(iteration.data)) {
+  data <- iteration.data[[i]]
+  min.risk <- min(data[,2])
+  risks <- c(risks, min.risk)
+}
+plot(1:length(risks), risks, xlab = "iteration", ylab = "estimated minimum risk", type = "l")
+```
+
+## Estimating noise
+
+To only estimate noise the SparseMAD noise estimator has been made available. To run:

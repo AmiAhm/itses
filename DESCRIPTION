@@ -1,0 +1,23 @@
+Package: itses
+Title: Iterative Sparse Estimation
+Version: 0.0.0.9000
+Authors@R: c(
+    person(given = "Amir",
+           family = "Ahmed",
+           role = c("aut", "cre"),
+           email = "amiahm@outlook.com"),
+    person(given = "Alastair",
+           family = "Young",
+           role = c("aut"),
+           email = "alastair.young@imperial.ac.uk")
+           )
+Description: Pacakge to perform iterative sparse estimation of many normal means.
+ Either using soft- or hard-threhsold estimator. Risk minimization under squared error loss.
+License: GPL (>= 3)
+Encoding: UTF-8
+LazyData: true
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.1.1
+Suggests: 
+    testthat (>= 3.0.0)
+Config/testthat/edition: 3
