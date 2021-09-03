@@ -24,7 +24,8 @@ devtools::install("itses")
 
 ## Example
 
-To run them main method run:
+Running the main method. 
+
 ```{r}
 library(itses)
 
