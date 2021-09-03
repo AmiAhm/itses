@@ -1,6 +1,7 @@
 # Iterative Sparse Estimation (ITSES) of Many Normal Means
 
-The package main purpose is to perform sparse estimation of many normal means using an iterative approach. Risk minimiziation can be done numerically or by sampling. Estimation is done using either the hard- or the soft-threhold estimator. 
+The  main purpose of this package is to perform sparse estimation of many normal means.  Estimation is done using either the hard- or the soft-threhold estimator. 
+An iterative approach is used to select a threshold.
 
 ## Setup 
 
