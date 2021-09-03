@@ -14,7 +14,7 @@ library(devtools)
 devtools::install_github("AmiAhm/itses")
 ```
 
-Alternatively, download package material or clone the repository, and run the following R-script. Ensure to have the main folder "itses/" in the working directory:
+Alternatively, download package material or clone the repository, and run the following R-script. Ensure to have the main folder "itses/" in the working directory.
 
 ```{r}
 library(devtools)
@@ -24,7 +24,7 @@ devtools::install("itses")
 
 ## Example
 
-Running the main method. 
+Running the main method: 
 
 ```{r}
 library(itses)
@@ -48,7 +48,7 @@ Refer to the documentation and vignettes for in-depth explanation of parameters 
 
 ## Details
 
-The package uses no external dependencies. It was built on R version 4.0.3 (2020-10-10).
+The package uses no external dependencies. It was built on R version 4.0.3.
 
 
 ## About
