@@ -32,7 +32,7 @@
 #' @param max.length The maximum number of observations `n`. If`n` is above
 #' internal calculations will downsample `y` to be of `max.length` size.
 #' Defaults to `5e6`.
-#' @param minimization.method   The risk minimization method which will be used.
+#' @param minimizationmethod   The risk minimization method which will be used.
 #' Can be either "numeric" or "sampling". Default is "numeric".
 #' @param debug `logical`. Specify wether or not to print debug code from
 #' iterations.
@@ -63,7 +63,7 @@ itses <- function(y,
                   init.lambda = "median",
                   noisetype = "gaussian",
                   max.length = 5e6,
-                  minimization.method   = "numeric",
+                  minimizationmethod   = "numeric",
                   debug = FALSE,
                   sd = NA,
                   sparsity = NA,
@@ -82,38 +82,48 @@ itses <- function(y,
   }
     if(debug) print(paste("Starting ITSES. Number of points in data: ", n))
 
-  # Estimate noise if not available.
-  if((!is.numeric(sd)) | (sd <= 0)) {
-    if(debug) print("Starting sd estimation.")
-    y.temp <- y # Temp. variable
+  normalizing <- TRUE
+  if(noisetype == "gaussian"){
+    if(debug) print("Using gaussian noise")
+    # Estimate noise if not available.
+    if((!is.numeric(sd)) | (sd <= 0)) {
+      if(debug) print("Starting sd estimation.")
+      y.temp <- y # Temp. variable
 
-    # If wanted, remove 0s from estimation.
-    if(remove.zero) {
-      if(debug) print("Removing zeros frem sd estimation.")
-     y.temp<- y.temp[y.temp != 0]
-    }
-    if(sparse.mad) {
-      if(debug) print("Using SparseMAD estimator.")
-      # Estimate noise by building in sparsity assumption.
-      if(is.na(sparsity)) {
-        # Use 'SparseMAD' to estimate noise.
-        if(debug) print("Estimating noise.")
-        sd <- sparse.mad.estimator(y.temp, h = h, debug = debug)
-      }else{
-        if(debug) print("Using given sparsity level.")
-        # If sparsity is available find sparsity threshold.
-        t <- get.threshold.for.sparsity(y, sparsity)
-        # Use suggested 'SparseMAD' with given threshold.
-        sd <- thresholded.mad.estimator(y.temp, t)
+      # If wanted, remove 0s from estimation.
+      if(remove.zero) {
+        if(debug) print("Removing zeros frem sd estimation.")
+       y.temp<- y.temp[y.temp != 0]
       }
-    }else{
-      if(debug) print("Using MAD estimator to estimate noise.")
-      sd <- mad.estimator(y.temp)
+      if(sparse.mad) {
+        if(debug) print("Using SparseMAD estimator.")
+        # Estimate noise by building in sparsity assumption.
+        if(is.na(sparsity)) {
+          # Use 'SparseMAD' to estimate noise.
+          if(debug) print("Estimating noise.")
+          sd <- sparse.mad.estimator(y.temp, h = h, debug = debug)
+        }else{
+          if(debug) print("Using given sparsity level.")
+          # If sparsity is available find sparsity threshold.
+          t <- get.threshold.for.sparsity(y, sparsity)
+          # Use suggested 'SparseMAD' with given threshold.
+          sd <- thresholded.mad.estimator(y.temp, t)
+        }
+      }else{
+        if(debug) print("Using MAD estimator to estimate noise.")
+        sd <- mad.estimator(y.temp)
+      }
     }
+    if(debug) print(paste0("Sd:", sd))
+    # Normalize data for iterative threshold selection.
+    z <- y/sd
+  }else if(noisetype == "speckle"){
+    if(debug) print("Using speckle noise")
+    normalizing <- FALSE
+    z <- y
+  }else{
+    stop("Unsupported noisetype")
   }
-  if(debug) print(paste0("Sd:", sd))
-  # Normalize data for iterative threshold selection.
-  z <- y/sd
 
   # Set minimum and maximimum bounds for threshold.
   if(is.null(min.threshold))  min.threshold <- 0
@@ -125,7 +135,7 @@ itses <- function(y,
   lambda <- get.thresholded.lambda(lambda, min.threshold, max.threshold)
 
   # Set start parameters.
-  if(minimization.method   == "sampling") lambda.grid <- NULL
+  if(minimizationmethod == "sampling") lambda.grid <- NULL
 
   # Initiate objects to store results in.
   sds <- sd
@@ -147,7 +157,7 @@ itses <- function(y,
       }
 
       # Select minimization method.
-      if(minimization.method   == "sampling") {
+      if(minimizationmethod   == "sampling") {
         # Find threshold by using sampling to estimate risk.
         iter.results <- iter.sampling(y = z.sample,
                                     init.lambda = lambda,
@@ -161,7 +171,7 @@ itses <- function(y,
                                       max.threshold = max.threshold
                                     )
       lambda.grid <- iter.results$lambdas
-      }else if(minimization.method   == "numeric") {
+      }else if(minimizationmethod   == "numeric") {
         # Find threshold by directly minimizing risk.
         if(noisetype != "gaussian") stop("Non supported noisetype")
         iter.results <- iter.newton(y = z.sample,
@@ -176,7 +186,11 @@ itses <- function(y,
         stop("Not supported minimization method, only 'sampling' and 'numeric' currently supported.")
       }
       # Store results.
-      iteration_result[[i+1]] <- cbind(sd*iter.results$lambdas,sd^2*iter.results$risks)
+      if(normalizing){
+        iteration_result[[i+1]] <- cbind(sd*iter.results$lambdas,sd^2*iter.results$risks)
+      }else{
+        iteration_result[[i+1]] <- cbind(iter.results$lambdas,iter.results$risks)
+      }
       lambda <- iter.results$lambda
       lambdas <- c(lambdas, lambda)
 
@@ -191,27 +205,36 @@ itses <- function(y,
 
 
   # Get final mean estimates
+  if(normalizing) {
+    lambda <- sd*lambda
+    lambdas <- sd*lambdas
+  }
+
   if(method == "ST") {
-    theta <- soft.threshold.estimator(y, sd*lambda)
+    theta <- soft.threshold.estimator(y, lambda)
   }else if(method == "HT") {
-    theta <- hard.threshold.estimator(y, sd*lambda)
+    theta <- hard.threshold.estimator(y, lambda)
   }else{
     stop("Unsupported estimator selected.")
   }
 
   # Storing parameters and results.
   result <- list(theta = theta,
-                 lambda = sd*lambda,
+                 lambda = lambda,
                  sd = sd,
                  sds = sds,
-                 lambdas = sd*lambdas)
+                 lambdas = lambdas)
   result[["iteration_result"]] <- iteration_result
   result[["y"]] <- y
   result[["method"]] <- method
   result[["m"]] <- m
-  result[["minimization.method"]] <- minimization.method
+  result[["minimizationmethod"]] <- minimizationmethod
 
   # Return results.
   if(debug) print(paste0("Final threshold is: ",  result$lambda))
   result
 }
+
+#result <- itses((1+rnorm(10))*rnorm(10), sd = 0.05, method = "ST", max.threshold = Inf,
+#                minimizationmethod = "sampling", noisetype = "speckle")
+#result$lambda

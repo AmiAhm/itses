@@ -3,12 +3,17 @@
 #    Mean Estimators
 #########################
 soft.threshold.estimator <- function(y, lambda) {
+  if(!is.finite(lambda)) return(rep(0, length(y)))
   v <- abs(y)-lambda
   v <- v*(v>0)
   sign(y)*v
 }
 hard.threshold.estimator <- function(y, lambda) {
   (abs(y)>lambda)*y
+}
+
+scale.estimator <- function(y, lambda) {
+  lambda*y
 }
 #########################
 #    Loss functions

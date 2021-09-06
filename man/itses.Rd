@@ -10,7 +10,7 @@ itses(
   m = 5,
   init.lambda = "median",
   max.length = 5e+06,
-  minimization.method = "numeric",
+  minimizationmethod = "numeric",
   debug = FALSE,
   sd = NA,
   sparsity = NA,
@@ -38,7 +38,7 @@ Defaults to "ST".}
 internal calculations will downsample \code{y} to be of \code{max.length} size.
 Defaults to \code{5e6}.}
 
-\item{minimization.method}{The risk minimization method which will be used.
+\item{minimizationmethod}{The risk minimization method which will be used.
 Can be either "numeric" or "sampling". Default is "numeric".}
 
 \item{debug}{\code{logical}. Specify wether or not to print debug code from
