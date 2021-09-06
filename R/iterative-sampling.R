@@ -3,12 +3,14 @@
 #' @noRd
 iter.sampling <- function(y,
                           init.lambda = "median",
+                          sd = 1,
                           b = 20,
                           k = 15,
                           lambda.grid = NULL,
                           max_num_iters = 10,
                           tol = 1e-8,
                           method = "ST",
+                          noisetype = NULL,
                           debug = FALSE,
                           min.threshold = 0,
                           max.threshold = Inf
@@ -48,8 +50,17 @@ iter.sampling <- function(y,
   # Sample data
   n <- length(y)
   if (debug) print(paste0("Now sampling: ", b * n,"points"))
-  y.star <- rnorm(b * n, mean = theta.t, sd = 1)
-  y.star <- matrix(y.star, ncol = b)
+
+  if(noisetype == "gaussian"){
+    y.star <- rnorm(b * n, mean = theta.t, sd = sd)
+    y.star <- matrix(y.star, ncol = b)
+  }else if(noisetype == "speckle"){
+    warning("0 centered")
+    noise <- 1+rnorm(b * n, mean = 0, sd = sd)
+    y.star <- matrix(noise, ncol = b)*theta.t
+  }else{
+    stop("Unsupported noise type")
+  }
 
   # Calculate risk over all samples and add at different thresholds
   risks <- sapply(lambda.grid, function(lambda) {
