@@ -61,6 +61,7 @@ itses <- function(y,
                   method = "ST",
                   m = 5,
                   init.lambda = "median",
+                  noisetype = "gaussian",
                   max.length = 5e6,
                   minimization.method   = "numeric",
                   debug = FALSE,
@@ -150,6 +151,7 @@ itses <- function(y,
         # Find threshold by using sampling to estimate risk.
         iter.results <- iter.sampling(y = z.sample,
                                     init.lambda = lambda,
+                                      noisetype = noisetype,
                                     ...,
                                     lambda.grid  = lambda.grid,
                                     debug = debug,
@@ -161,6 +163,7 @@ itses <- function(y,
       lambda.grid <- iter.results$lambdas
       }else if(minimization.method   == "numeric") {
         # Find threshold by directly minimizing risk.
+        if(noisetype != "gaussian") stop("Non supported noisetype")
         iter.results <- iter.newton(y = z.sample,
                                   init.lambda = lambda,
                                   ...,
