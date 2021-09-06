@@ -57,8 +57,8 @@ d2lambda.risk.st <- function(theta, lambda) {
 #' @noRd
 risk.ht <- function(theta, lambda) {
   if(!is.finite(lambda)) return(sum(theta^2))
-  f <- function(theta, lambda) theta^2 *(pnorm(lambda-theta) - pnorm(-lambda-theta))
-  +2-pnorm(lambda-theta)- pnorm(lambda+theta)+ (lambda-theta)*
+  f <- function(theta, lambda) theta^2 *(pnorm(lambda-theta) - pnorm(-lambda-theta))+
+    2-pnorm(lambda-theta)- pnorm(lambda+theta)+ (lambda-theta)*
     dnorm(lambda-theta)+(lambda+theta)*dnorm(lambda+theta)
   sum(sapply(theta, function(theta) f(theta, lambda)))
 }
