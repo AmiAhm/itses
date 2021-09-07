@@ -48,7 +48,7 @@ Refer to the documentation and vignettes for in-depth explanation of parameters 
 
 ## Details
 
-The package uses no external dependencies. It was built on R version 4.0.3.
+The package uses no external dependencies and was built on R version 4.0.3.
 
 
 ## About
