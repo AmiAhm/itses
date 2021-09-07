@@ -53,7 +53,9 @@ The package uses no external dependencies and was built on R version 4.0.3.
 
 ## About
 
-This package was made in part of a research project for the MSc in Statistics of Imperial College London.
+This package was made as in part of the research project component of the MSc in Statistics of Imperial College London.
+
+Thesis: Sparse Estimation of Many Normal Means
 
 By Amir Ahmed, supervised by Alastair Young (September 2021)
 
