@@ -32,7 +32,7 @@ library(itses)
 # To get data to work with
 y <- rnorm(10) 
 
-# To run at default settings (noise level estiamted + soft-threshold + numeric)
+# To run at default settings (noise level estiamted + soft-threshold + numerical)
 itses.result <- itses::itses(y) 
 
 #  Print result
