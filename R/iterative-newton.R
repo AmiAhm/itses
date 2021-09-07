@@ -21,6 +21,8 @@ iter.newton <- function(y,
     theta <- soft.threshold.estimator(y, lambda)
   }else if(method == "HT") {
     theta <- hard.threshold.estimator(y, lambda)
+  }else{
+    stop("Invalid method given.")
   }
 
   # Find oracle threshold given assumed true means.

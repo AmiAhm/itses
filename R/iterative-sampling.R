@@ -39,13 +39,21 @@ iter.sampling <- function(y,
   }
 
   # Fetch needed estimators.
-  if (method == "ST") {
+  if(is.character(method)){
+    if(method == "ST") {
     theta.t <- soft.threshold.estimator(y, lambda)
     risk.fun <- loss.w.st
-  }else if (method == "HT") {
-    theta.t <- hard.threshold.estimator(y, lambda)
-    risk.fun <- loss.w.ht
-  }
+    }else if(method == "HT") {
+      theta.t <- hard.threshold.estimator(y, lambda)
+      risk.fun <- loss.w.ht
+    }else{
+      stop("Invalid method.")
+    }
+    } else{
+      theta.t <- method(y, lambda)
+      risk.fun <- function(theta, y, lambda) get.l2.loss(theta, method(y, lambda))
+    }
+
 
   # Sample data
   n <- length(y)
@@ -54,12 +62,12 @@ iter.sampling <- function(y,
   if(noisetype == "gaussian"){
     y.star <- rnorm(b * n, mean = theta.t, sd = sd)
     y.star <- matrix(y.star, ncol = b)
-  }else if(noisetype == "speckle"){
-    warning("0 centered")
-    noise <- 1+rnorm(b * n, mean = 0, sd = sd)
-    y.star <- matrix(noise, ncol = b)*theta.t
   }else{
-    stop("Unsupported noise type")
+    #warning("0 centered")
+    #noise <- 1+rnorm(b * n, mean = 0, sd = sd)
+    #y.star <- matrix(noise, ncol = b)*theta.t
+    if(debug)  print("Using custom noise")
+    y.star <- noisetype$sample(b, theta.t)
   }
 
   # Calculate risk over all samples and add at different thresholds

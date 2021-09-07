@@ -19,7 +19,10 @@ get.risk.oracle.threshold <- function(theta,
     risk.fun <- risk.ht
     df <- dlambda.risk.ht
     d2f <- d2lambda.risk.ht
+  }else{
+    stop("Invalid method given.")
   }
+
   if(is.null(max.threshold)) {
     max.threshold <- get.max.threshold(method, theta)
   }

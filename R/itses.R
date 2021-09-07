@@ -117,12 +117,10 @@ itses <- function(y,
     if(debug) print(paste0("Sd:", sd))
     # Normalize data for iterative threshold selection.
     z <- y/sd
-  }else if(noisetype == "speckle"){
-    if(debug) print("Using speckle noise")
+  }else {
+    if(debug) print("Using custom noise.")
     normalizing <- FALSE
     z <- y
-  }else{
-    stop("Unsupported noisetype")
   }
 
   # Set minimum and maximimum bounds for threshold.
@@ -174,6 +172,7 @@ itses <- function(y,
       }else if(minimizationmethod   == "numeric") {
         # Find threshold by directly minimizing risk.
         if(noisetype != "gaussian") stop("Non supported noisetype")
+        if(!is.character(method)) stop("Invalid method")
         iter.results <- iter.newton(y = z.sample,
                                   init.lambda = lambda,
                                   ...,
@@ -210,12 +209,16 @@ itses <- function(y,
     lambdas <- sd*lambdas
   }
 
-  if(method == "ST") {
+  if(is.character(method)){
+    if(method == "ST") {
     theta <- soft.threshold.estimator(y, lambda)
-  }else if(method == "HT") {
-    theta <- hard.threshold.estimator(y, lambda)
-  }else{
-    stop("Unsupported estimator selected.")
+    }else if(method == "HT") {
+      theta <- hard.threshold.estimator(y, lambda)
+    }else{
+      stop("Invalid method.")
+    }
+  } else{
+    theta <- method(y, lambda)
   }
 
   # Storing parameters and results.
