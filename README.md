@@ -51,6 +51,12 @@ Refer to the documentation and vignettes for in-depth explanation of parameters 
 The package uses no external dependencies and was built on R version 4.0.3.
 
 
+## Changelog
+
+### 0.0.0.9001 06-09-2021
+Fix rogue linebreak in utility causing faulty HT risk
+
+
 ## About
 
 This package was made as in part of the research project component of the MSc in Statistics of Imperial College London.
