@@ -11,7 +11,7 @@ get.visu.threshold <- function(y) {
 #' @param lambda.grid : initial grid, is assumed to be sorted
 #' @param k : number of points to have in grid, count include min and max.
 #' @noRd
-refine.lambda_grid <- function(lambda.grid, k = NA) {
+refine.lambda_grid <- function(lambda.grid, min.threshold, max.threshold, k = NA) {
   # Ensure arguments passed is correct.
   if(!is.numeric(k)) {
     # Do not do anything if k is non numeric, e.g. NA.
@@ -26,8 +26,9 @@ refine.lambda_grid <- function(lambda.grid, k = NA) {
     lambda.grid <- as.vector(quantile(lambda.grid, probs = qs))
   }else if(k - length(lambda.grid) > 0) {
     # Extend the grid, there is a low chance of overlap, this could make number not equal to k..
-    lambda.grid.extension <- seq(from = min(lambda.grid),
-                                 to = max(lambda.grid[is.finite(lambda.grid)]),
+    lambda.grid.extension <- seq(from = min.threshold,
+                                 to = if(is.finite(max.threshold)) max.threshold else
+                                   max(abs(lambda.grid[is.finite(lambda.grid)])),
                                  length.out = k - length(lambda.grid) + 2)
     lambda.grid <- c(lambda.grid, lambda.grid.extension)
   }
@@ -55,7 +56,7 @@ get.lambda_grid <- function(y,
   # Ensure all points are unique
   lambda.grid <- unique(lambda.grid)
   # Refine the grid, and make sure it has about k points
-  lambda.grid <- refine.lambda_grid(lambda.grid , k = k)
+  lambda.grid <- refine.lambda_grid(lambda.grid, min.threshold, max.threshold , k = k)
   # Return grid
   lambda.grid
 }
