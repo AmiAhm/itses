@@ -62,6 +62,7 @@ Fix rogue linebreak in utility causing faulty HT risk
 This package was made as in part of the research project component of the MSc in Statistics of Imperial College London.
 
 Thesis: Sparse Estimation of Many Normal Means
+
 Implementation used in thesis can be found at: https://github.com/AmiAhm/SMNM-Implementation
 
 By Amir Ahmed, supervised by Alastair Young (September 2021)
