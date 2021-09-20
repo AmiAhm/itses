@@ -13,7 +13,8 @@ iter.sampling <- function(y,
                           noisetype = NULL,
                           debug = FALSE,
                           min.threshold = 0,
-                          max.threshold = Inf
+                          max.threshold = Inf,
+                          samples = NULL
 ) {
 
   # Initiate lambda if needed
@@ -59,6 +60,7 @@ iter.sampling <- function(y,
   n <- length(y)
   if (debug) print(paste0("Now sampling: ", b * n,"points"))
 
+  if(is.null(samples)){
   if(noisetype == "gaussian"){
     y.star <- rnorm(b * n, mean = theta.t, sd = sd)
     y.star <- matrix(y.star, ncol = b)
@@ -68,6 +70,8 @@ iter.sampling <- function(y,
     #y.star <- matrix(noise, ncol = b)*theta.t
     if(debug)  print("Using custom noise")
     y.star <- noisetype$sample(b, theta.t)
+  }}else{
+    y.star <- samples
   }
 
   # Calculate risk over all samples and add at different thresholds
