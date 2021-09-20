@@ -5,7 +5,17 @@ library(imager)
 library(waveslim)
 library(itses)
 
-sd <- 0.2
+sd <- 0.05
+
+image_mse <- function(original, estimated, dims = 3){
+  v <- NULL
+  for(l in 1:dims) {
+     vt <- (original[,,,l]-estimated[,,,l])^2
+     vt<- vt[1:length(vt)]
+    v <- c(v, vt)
+    }
+  mean(v)
+}
 
 clip_image_layer <- function (y, min_bound = 0, max_bound = 1){
   clipped_layer <- apply(y, 1, function(x) sapply(x, function(z) min(max(z, min_bound), max_bound)))
@@ -14,6 +24,12 @@ clip_image_layer <- function (y, min_bound = 0, max_bound = 1){
 
 add_gaussian_noise_to_image_layer <- function(y, sd = 1){
   noisy <- apply(y, 1, function(x) rnorm(length(x), mean = x, sd = sd))
+  clipped_noisy <- clip_image_layer(noisy)
+  clipped_noisy
+}
+
+add_speckle_noise_to_image_layer <- function(y, sd = 1){
+  noisy <- apply(y, 1, function(x) (1+rnorm(length(x), mean = 0, sd = sd))*x)
   clipped_noisy <- clip_image_layer(noisy)
   clipped_noisy
 }
@@ -46,6 +62,7 @@ itses_image <- function(image, method = "ST",
                         dims = 3,
                         wf = "haar",
                         boundary = "periodic",
+                        ...,
                         J = 4){
 
   image.result <- image
@@ -61,7 +78,7 @@ itses_image <- function(image, method = "ST",
         res[[name]] <- details[[name]]
       }else{
         detail.vector <- details[[name]][1:length(details[[name]])]
-        treated <- itses(detail.vector, method = method, sd = sd)$theta
+        treated <- itses(detail.vector, method = method, sd = sd, ...)$theta
         reconstructed.detail <-  matrix(treated, nrow = nrow(details[[name]]))
         res[[name]] <- reconstructed.detail
       }
@@ -81,8 +98,7 @@ itses_image <- function(image, method = "ST",
 
 }
 
-denoised <- itses_image(noisy)
-plot(denoised)
+
 
 itses_image_custom_noise <- function(image,
                                      noise_fun =
@@ -98,6 +114,7 @@ itses_image_custom_noise <- function(image,
                                       init.lambda = "median",
                                      tol = 1e-8,
                                      debug = TRUE,
+                                     ...,
                                      J = 4){
   if(is.character(method)){
       if(method == "ST") {
@@ -190,7 +207,7 @@ itses_image_custom_noise <- function(image,
                                         init.lambda = thresholds[[name]][[1]],
                                         noisetype = noisetype,
                                         samples = detail.samples[[name]],
-                                        #...,
+                                        ...,
                                         lambda.grid  = lambda.grids[[name]],
                                         debug = debug,
                                         b = b,
@@ -227,7 +244,6 @@ itses_image_custom_noise <- function(image,
       thresholded.image.layer <- idwt.2d(thresholded.image.details)
 
 
-
     list(thresholded.image.layer = thresholded.image.layer, thresholds = thresholds, hist.thresholds = hist.thresholds)
 
   })
@@ -236,5 +252,39 @@ itses_image_custom_noise <- function(image,
   image.result
 }
 
+par(mfrow = c(2,2))
+
+plot(image, main = "Original")
+
+ms <- round(image_mse(image, noisy), digits = 5)
+plot(noisy, main = paste("Noisy, mse: ", ms))
 
 
+# these looks very close, so seems to work similar
+denoised <- itses_image(noisy)
+ms <- round(image_mse(image, denoised), digits = 5)
+plot(denoised, main = paste("Non-custom, mse: ", ms))
+
+
+denoised_custom <- itses_image_custom_noise(noisy, b = 50)
+ms <- round(image_mse(image, denoised_custom), digits = 5)
+plot(denoised_custom, main = paste("custom, mse: ", ms))
+
+## Speckle test
+sd = 0.05
+noisy_speckle <- add_noise_to_image(image, add_speckle_noise_to_image_layer, sd =sd)
+
+plot(image, main = "Original")
+
+ms <- round(image_mse(image, noisy_speckle), digits = 5)
+plot(noisy_speckle, main = paste("Noisy, mse: ", ms))
+
+denoised <- itses_image(noisy_speckle)
+ms <- round(image_mse(image, denoised), digits = 5)
+plot(denoised, main = paste("Non-custom, mse: ", ms))
+
+
+denoised_custom <- itses_image_custom_noise(noisy_speckle, b = 50,
+                                            noise_fun =  function(image_layer)  add_speckle_noise_to_image_layer(image_layer, sd =sd))
+ms <- round(image_mse(image, denoised_custom), digits = 5)
+plot(denoised_custom, main = paste("custom, mse: ", ms))
