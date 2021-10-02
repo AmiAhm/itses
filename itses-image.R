@@ -17,6 +17,35 @@ image_mse <- function(original, estimated, dims = 3){
   mean(v)
 }
 
+image_true_mse <- function(lambdas, original, noisy, estimator, dims = 3){
+  image.layers <- denoised.image.list <- lapply(1:dims, function(l){
+    img.layer <- noisy[,,,l]
+    details <- dwt.2d(img.layer, wf = wf, J = J, boundary = boundary)
+    detail.names <- names(details)
+
+     thresholded.details <- lapply(detail.names, function(name){
+      print(name)
+      res <- list()
+      if(grepl("LL", name, fixed = T)){
+        res[[name]] <- details[[name]]
+      }else{
+        detail.vector <- details[[name]][1:length(details[[name]])]
+        treated <- estimator(detail.vector, lambdas[[1]][[name]])
+        reconstructed.detail <-  matrix(treated, nrow = nrow(details[[name]]))
+        res[[name]] <- reconstructed.detail
+      }
+      return(res)
+    })
+
+    thresholded.details <- Reduce(c, thresholded.details)
+
+    for(name in detail.names){
+      details[[name]] <- thresholded.details[[name]]
+    }
+    reconstructed.image.layer <- idwt.2d(details)
+    reconstructed.image.layer
+}
+
 clip_image_layer <- function (y, min_bound = 0, max_bound = 1){
   clipped_layer <- apply(y, 1, function(x) sapply(x, function(z) min(max(z, min_bound), max_bound)))
   clipped_layer
@@ -34,6 +63,21 @@ add_speckle_noise_to_image_layer <- function(y, sd = 1){
   clipped_noisy
 }
 
+add_poisson_noise_to_image_layer <- function(y){
+  noisy <- apply(y, 1, function(x) rpois(length(x), x*255)/255)
+  clipped_noisy <- clip_image_layer(noisy)
+  clipped_noisy
+}
+
+
+add_mixed_gaussian_poisson_noise_to_image_layer <- function(y, sd = 0.05){
+  noisy <- apply(y, 1, function(x) rpois(length(x), x*255)/255 +  rnorm(length(x), mean = 0, sd = sd))
+  clipped_noisy <- clip_image_layer(noisy)
+  clipped_noisy
+}
+
+
+
 add_noise_to_image <- function(image, layer_noise, ..., dims = 3, common_layer_noise = F){
   noisy <- image
   if(common_layer_noise){
@@ -49,7 +93,7 @@ add_noise_to_image <- function(image, layer_noise, ..., dims = 3, common_layer_n
   noisy
 }
 
-image <- load.image("../SMNM-Implementation/output/figures/stjerten256.png")
+image <- load.image("../SMNM-Implementation/output/figures/peppers256.png")
 noisy <- add_noise_to_image(image, add_gaussian_noise_to_image_layer, sd =sd)
 
 par(mfrow = c(1,2))
@@ -62,8 +106,9 @@ itses_image <- function(image, method = "ST",
                         dims = 3,
                         wf = "haar",
                         boundary = "periodic",
+                        sd = NA,
                         ...,
-                        J = 4){
+                        J = 6){
 
   image.result <- image
   denoised.image.list <- lapply(1:dims, function(l){
@@ -71,10 +116,25 @@ itses_image <- function(image, method = "ST",
     img.layer <- image.result[,,,l]
     details <- dwt.2d(img.layer, wf = wf, J = J, boundary = boundary)
     detail.names <- names(details)
+
+    if(is.na(sd)){
+    d <- sapply(detail.names, function(name){
+      if(grepl("LL", name, fixed = T)){
+        return(NULL)
+      }else{
+        detail.vector <- details[[name]][1:length(details[[name]])]
+        return(detail.vector)
+      }
+    })
+    d <- Reduce(c, d)
+
+    sd <- itses:::mad.estimator(d)
+    }
+
     thresholded.details <- lapply(detail.names, function(name){
       print(name)
       res <- list()
-      if("LL" %in% name){
+      if(grepl("LL", name, fixed = T)){
         res[[name]] <- details[[name]]
       }else{
         detail.vector <- details[[name]][1:length(details[[name]])]
@@ -115,7 +175,7 @@ itses_image_custom_noise <- function(image,
                                      tol = 1e-8,
                                      debug = TRUE,
                                      ...,
-                                     J = 4){
+                                     J = 6){
   if(is.character(method)){
       if(method == "ST") {
         method <- function(y, lambda) itses:::soft.threshold.estimator(y, lambda)
@@ -168,10 +228,9 @@ itses_image_custom_noise <- function(image,
 
     # Start iterative estimation.
     for(i in 0:(m-1)) {
-
       thresholded.details <- lapply(detail.names, function(name){
             res <- list()
-            if("LL" %in% name){
+            if(grepl("LL", name, fixed = T)){
               res[[name]] <- details[[name]]
             }else{
               treated <- method(details[[name]][1:length(details[[name]])], thresholds[[name]][1])
@@ -187,7 +246,7 @@ itses_image_custom_noise <- function(image,
           thresholded.image.details[[name]] <- thresholded.details[[name]]
         }
       thresholded.image.layer <- idwt.2d(thresholded.image.details)
-
+      thresholded.image.layer <- t(clip_image_layer(thresholded.image.layer))
       image.layer.samples <- lapply(1:b, function(b) noise_fun(image_layer = thresholded.image.layer))
       detail.samples.temp <- lapply(image.layer.samples, function(image.layer){
         dwt.2d(image.layer, wf = wf, J = J, boundary = boundary)
@@ -226,7 +285,7 @@ itses_image_custom_noise <- function(image,
     }
      thresholded.details <- lapply(detail.names, function(name){
             res <- list()
-            if("LL" %in% name){
+            if(grepl("LL", name, fixed = T)){
               res[[name]] <- details[[name]]
             }else{
               treated <- method(details[[name]][1:length(details[[name]])], thresholds[[name]][1])
@@ -241,7 +300,8 @@ itses_image_custom_noise <- function(image,
       for(name in detail.names){
           thresholded.image.details[[name]] <- thresholded.details[[name]]
         }
-      thresholded.image.layer <- idwt.2d(thresholded.image.details)
+    thresholded.image.layer <- idwt.2d(thresholded.image.details)
+    thresholded.image.layer <- t(clip_image_layer(thresholded.image.layer))
 
 
     list(thresholded.image.layer = thresholded.image.layer, thresholds = thresholds, hist.thresholds = hist.thresholds)
@@ -252,8 +312,9 @@ itses_image_custom_noise <- function(image,
   image.result
 }
 
+pdf()
+sd <- 0.1
 par(mfrow = c(2,2))
-
 plot(image, main = "Original")
 
 ms <- round(image_mse(image, noisy), digits = 5)
@@ -261,30 +322,65 @@ plot(noisy, main = paste("Noisy, mse: ", ms))
 
 
 # these looks very close, so seems to work similar
-denoised <- itses_image(noisy)
+denoised <- itses_image(noisy, sd = sd)
 ms <- round(image_mse(image, denoised), digits = 5)
 plot(denoised, main = paste("Non-custom, mse: ", ms))
 
 
-denoised_custom <- itses_image_custom_noise(noisy, b = 50)
+denoised_custom <- itses_image_custom_noise(noisy, b = 1)
 ms <- round(image_mse(image, denoised_custom), digits = 5)
 plot(denoised_custom, main = paste("custom, mse: ", ms))
 
 ## Speckle test
-sd = 0.05
+sd = 0.5
 noisy_speckle <- add_noise_to_image(image, add_speckle_noise_to_image_layer, sd =sd)
 
 plot(image, main = "Original")
 
 ms <- round(image_mse(image, noisy_speckle), digits = 5)
-plot(noisy_speckle, main = paste("Noisy, mse: ", ms))
+plot(noisy_speckle, main = paste("Speckle noisy, mse: ", ms))
 
-denoised <- itses_image(noisy_speckle)
+denoised <- itses_image(noisy_speckle, sd = NA, sparse.mad = F)
 ms <- round(image_mse(image, denoised), digits = 5)
 plot(denoised, main = paste("Non-custom, mse: ", ms))
 
 
-denoised_custom <- itses_image_custom_noise(noisy_speckle, b = 50,
+denoised_custom <- itses_image_custom_noise(noisy_speckle, b = 1,
                                             noise_fun =  function(image_layer)  add_speckle_noise_to_image_layer(image_layer, sd =sd))
+ms <- round(image_mse(image, denoised_custom), digits = 5)
+plot(denoised_custom, main = paste("custom, mse: ", ms))
+
+### Poisson
+
+noisy_poisson <- add_noise_to_image(image, add_poisson_noise_to_image_layer)
+plot(image, main = "Original")
+ms <- round(image_mse(image, noisy_poisson), digits = 5)
+plot(noisy_poisson, main = paste("Noisy poisson, mse: ", ms))
+denoised <- itses_image(noisy_poisson, sd = NA, sparse.mad = F)
+ms <- round(image_mse(image, denoised), digits = 5)
+plot(denoised, main = paste("Non-custom, mse: ", ms))
+denoised_custom <- itses_image_custom_noise(noisy_poisson, b = 50,
+                                            noise_fun =  function(image_layer)  add_poisson_noise_to_image_layer(image_layer)
+)
+ms <- round(image_mse(image, denoised_custom), digits = 5)
+plot(denoised_custom, main = paste("custom, mse: ", ms))
+
+
+## Mixed poisson
+
+sd = 0.02
+noisy_poisson <- add_noise_to_image(image, add_mixed_gaussian_poisson_noise_to_image_layer, sd = sd)
+plot(image, main = "Original")
+ms <- round(image_mse(image, noisy_poisson), digits = 5)
+plot(noisy_poisson, main = paste("Noisy poisson, mse: ", ms))
+
+denoised <- itses_image(noisy_poisson, sd = NA, sparse.mad = F)
+ms <- round(image_mse(image, denoised), digits = 5)
+plot(denoised, main = paste("Non-custom, mse: ", ms))
+
+
+denoised_custom <- itses_image_custom_noise(noisy_poisson, b = 1,
+                                            noise_fun =  function(image_layer)  add_mixed_gaussian_poisson_noise_to_image_layer(image_layer, sd = sd)
+)
 ms <- round(image_mse(image, denoised_custom), digits = 5)
 plot(denoised_custom, main = paste("custom, mse: ", ms))
